@@ -1,7 +1,9 @@
 1/ Docker install:
-sudo yum install docker
-systemctl start docker
-systemctl enable docker
+*sudo yum install docker
+*systemctl start docker
+*systemctl enable docker
+*sysctl -w vm.max_map_count=262144: kernel parameter in Linux that specifies the maximum number of memory map areas a process can have
+ use this commande to resolve bootstrap failed check
 2/ create network macvlan:
 docker network create -d macvlan \
   --subnet=172.21.202.0/24 \
@@ -26,4 +28,4 @@ docker network create -d macvlan \
         docker run --name logstash --net net -d -p 9600:9600 -p 5044:5044 docker.elastic.co/logstash/logstash:7.11.2
 
      
- 5/  kernel parameter in Linux that specifies the maximum number of memory map areas a process can have
+ 5/  
