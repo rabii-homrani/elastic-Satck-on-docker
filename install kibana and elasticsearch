@@ -4,17 +4,26 @@ systemctl start docker
 systemctl enable docker
 2/ create network macvlan:
 docker network create -d macvlan \
-  --subnet=172.16.86.0/24 \
-  --gateway=172.16.86.1 \
+  --subnet=172.21.202.0/24 \
+  --gateway=172.21.202..1 \
   -o parent=eth0 \
      net
   3/ pull images
     * elastic search
       docker pull docker.elastic.co/elasticsearch/elasticsearch:8.6.2
+    * Kibana
       docker pull docker.elastic.co/kibana/kibana:8.6.2
+    * logstash
+    docker pull docker.elastic.co/logstash/logstash:7.11.2
+
       
  4/run images
      * elasticsearch
         docker run --name elasticsearch --net net -p 9200:9200 -p 9300:9300 -t docker.elastic.co/elasticsearch/elasticsearch:8.6.2
      * kibna
         docker run --name kibana --net net -p 5601:5601 docker.elastic.co/kibana/kibana:8.6.2
+     *logstash
+        docker run --name logstash --net net -d -p 9600:9600 -p 5044:5044 docker.elastic.co/logstash/logstash:7.11.2
+
+     
+ 5/ 
