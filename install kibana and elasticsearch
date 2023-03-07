@@ -26,4 +26,4 @@ docker network create -d macvlan \
         docker run --name logstash --net net -d -p 9600:9600 -p 5044:5044 docker.elastic.co/logstash/logstash:7.11.2
 
      
- 5/ 
+ 5/  kernel parameter in Linux that specifies the maximum number of memory map areas a process can have
