@@ -1,0 +1,6 @@
+services:
+  myservice:
+    image: myimage
+    networks:
+      mynetwork:
+        ipv4_address: 172.16.238.2
