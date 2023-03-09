@@ -5,3 +5,15 @@ docker network create -d macvlan \
   --aux-address="my-router=192.168.32.129" \
   -o parent=eth0 macnet32
   
+macvlan on docker coompose
+
+networks:
+  macvlan_network:
+    driver: macvlan
+    driver_opts:
+      parent: eno1 # replace eno1 with the name of your physical network interface
+    ipam:
+      driver: default
+      config:
+        - subnet: 192.168.1.0/24
+          gateway: 192.168.1.1
