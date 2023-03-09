@@ -1,50 +1,73 @@
-version: '3.6'
+version: '3'
+
 services:
-  Elasticsearch:
-    image: elasticsearch:7.16.2
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.9.3
     container_name: elasticsearch
-    restart: always
-    volumes:
-    - elastic_data:/usr/share/elasticsearch/data/
     environment:
-      ES_JAVA_OPTS: "-Xmx256m -Xms256m"
-      discovery.type: single-node    
-    ports:
-    - '9200:9200'
-    - '9300:9300'
-    networks:
-      - net
-
-  Logstash:
-    image: logstash:7.16.2
-    container_name: logstash
-    restart: always
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
     volumes:
-    - ./logstash/:/logstash_dir
-    command: logstash -f /logstash_dir/logstash.conf 
-    depends_on:
-      - Elasticsearch
+      - esdata:/usr/share/elasticsearch/data
     ports:
-    - '9600:9600'
-    environment:
-      LS_JAVA_OPTS: "-Xmx256m -Xms256m"    
+      - 9200:9200
     networks:
-      - net
+      - macvlan_network
 
-  Kibana:
-    image: kibana:7.16.2
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.9.3
     container_name: kibana
-    restart: always       
-    ports:
-    - '5601:5601'
     environment:
-      - ELASTICSEARCH_URL=http://elasticsearch:9200  
-    depends_on:
-      - Elasticsearch  
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+      KIBANA_DEFAULT_APP_ID: "wazuh"
+      SERVER_NAME: kibana.example.com
+    ports:
+      - 5601:5601
     networks:
-      - net
+    - macvlan_network
+
+  wazuh:
+    image: wazuh/wazuh
+    container_name: wazuh
+    ports:
+      - 1514:1514/tcp
+      - 1514:1514/udp
+    volumes:
+      - ./wazuh:/var/ossec/data
+    environment:
+      - WAZUH_MANAGER='yes'
+    networks:
+      - macvlan_network
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:7.9.3
+    container_name: logstash
+    volumes:
+      - ./logstash/pipeline:/usr/share/logstash/pipeline
+      - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml
+      - ./logstash/config/logstash.conf:/usr/share/logstash/config/logstash.conf
+    environment:
+      - "XPACK_MONITORING_ENABLED=false"
+      - "ES_HOSTS=http://elasticsearch:9200"
+    networks:
+      - macvlan_network
+
 volumes:
-  elastic_data: {}
+  esdata:
 
 networks:
-  net:
+  etworks:
+  macvlan_network:
+    driver: macvlan
+    driver_opts:
+      parent:  enp7s0
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.21.202.0/24
+          gateway: 172.21.202.254
