@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  wazuh:
+    image: wazuh/wazuh:4.2.5_1
+    ports:
+      - "1514:1514"
+      - "1515:1515"
+    volumes:
+      - ./wazuh:/var/ossec/data
+    environment:
+      - WAZUH_MANAGER="yes"
+      - WAZUH_ANALYZER="yes"
+      - WAZUH_API="yes"
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - ELASTICSEARCH_HOST=elasticsearch
+      - ELASTICSEARCH_PORT=9200
+      - KIBANA_URL=http://kibana:5601
+      - KIBANA_HOST=kibana
+      - KIBANA_PORT=5601
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.16.3
+    container_name: elasticsearch
+    environment:
+      - node.name=elasticsearch
+      - discovery.seed_hosts=elasticsearch
+      - cluster.initial_master_nodes=elasticsearch
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - ./elasticsearch_data:/usr/share/elasticsearch/data
+    ports:
+      - 9200:9200
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:7.16.3
+    volumes:
+      - ./logstash:/usr/share/logstash/pipeline
+    environment:
+      - LS_JAVA_OPTS="-Xmx256m -Xms256m"
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - ELASTICSEARCH_USERNAME=elastic
+      - ELASTICSEARCH_PASSWORD=changeme
+    ports:
+      - 5044:5044
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.16.3
+    environment:
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+    ports:
+      - 5601:5601
