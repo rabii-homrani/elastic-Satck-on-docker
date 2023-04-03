@@ -1,0 +1,95 @@
+version: '3.6'
+services:
+
+  wazuh:
+    image: wazuh/wazuh:4.2.4
+    volumes:
+      - ./data:/var/ossec/data
+      - ./etc:/var/ossec/etc
+      - ./logs:/var/ossec/logs
+      - ./certs:/var/ossec/certs
+    ports:
+      - "1514:1514/udp"
+      - "55000:55000/tcp"
+      - "5000:5000/tcp"
+      - "1515:1515/tcp"
+    environment:
+      - WAZUH_MANAGER=yes
+      - WAZUH_ES=http://Elasticsearch:9200
+      - WAZUH_PASSWORD=wazuh
+      - wazuh_api_enabled=yes
+      - WAZUH_AUTHD='yes'
+      - WAZUH_LOGS='yes'
+      - WAZUH_API='yes'
+    networks:
+      - macvlan_network
+  Elasticsearch:
+    image: elasticsearch:7.16.2
+    container_name: elasticsearch
+    restart: always
+    volumes:
+    - elastic_data:/usr/share/elasticsearch/data/
+    environment:
+    - "ES_JAVA_OPTS=-Xmx256m -Xms256m"
+    - "discovery.type=single-node"
+    - xpack.security.enabled=true
+    - xpack.security.authc.api_key.enabled=true
+    - ELASTIC_PASSWORD=elastic
+
+    ports:
+    - "9200:9200"
+    - "9300:9300"
+    networks:
+      - macvlan_network
+
+  Logstash:
+    image: logstash:7.16.2
+    container_name: logstash
+    restart: always
+    volumes:
+    - ./logstash/:/logstash_dir
+    - ./logstash/:/usr/share/logstash/config
+    - ./config/pipeline:/usr/share/logstash/pipeline
+    command: logstash -f /logstash_dir/logstash.conf
+    depends_on:
+      - Elasticsearch
+    ports:
+    - "9600:9600"
+    environment:
+      - "LS_JAVA_OPTS=-Xmx256m -Xms256m"
+      - "ELASTICSEARCH_HOSTS=http://elasticsearch:9200"
+      - ELASTICSEARCH_USERNAME=elastic
+      - ELASTICSEARCH_PASSWORD=elastic
+      - xpack.security.enabled=true
+    networks:
+      - macvlan_network
+  Kibana:
+    image: kibana:7.16.2
+    container_name: kibana
+    restart: always
+    ports:
+    - "5601:5601"
+    environment:
+      - "LS_JAVA_OPTS=-Xmx256m -Xms256m"
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - ELASTICSEARCH_USERNAME=elastic
+      - ELASTICSEARCH_PASSWORD=elastic
+      - xpack.security.enabled=true
+    depends_on:
+      - Elasticsearch
+    networks:
+      - macvlan_network
+
+volumes:
+  elastic_data: {}
+
+networks:
+  macvlan_network:
+    driver: macvlan
+    driver_opts:
+      parent: enp7s0
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.21.202.0/24
+          gateway: 172.21.202.254
